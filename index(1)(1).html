@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONITORING - Online Monitoring System</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3uP1i5j8fQw4nGQ2lQkXq1s8mXQ0=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--green:#064f3a;--green2:#0a6b4d;--bg:#f4f7f6;--card:#fff;--line:#dce5e1;--text:#17352b;--muted:#70817a;--danger:#b42318}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+nav{height:72px;background:#063f2f;color:#fff;display:flex;align-items:center;padding:0 5%;gap:34px;box-shadow:0 2px 10px #0002}
+.brand{font-size:25px;font-weight:800;margin-right:35px}.brand span{color:#67d19e}
+nav a{color:#d9eee6;text-decoration:none;font-weight:700;cursor:pointer}.active{color:#61d09a!important}
+.container{max-width:1200px;margin:28px auto;padding:0 20px}.page{display:none}.page.show{display:block}
+
+.dashboard-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px}.dashboard-sub{color:var(--muted);font-size:13px;margin-top:-12px;margin-bottom:18px}.dashboard-switch{display:flex;background:#eef1f0;border-radius:12px;padding:4px;gap:4px}.dashboard-switch span{padding:9px 14px;border-radius:8px;font-size:12px;font-weight:800;color:#68766f}.dashboard-switch .selected{background:#064f3a;color:#fff}.dash-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:0 0 16px}.dash-card{background:#fff;border:1px solid var(--line);border-top:3px solid #238b63;border-radius:5px;padding:15px 16px;min-height:88px}.dash-card.warn{border-top-color:#ff7b1a}.dash-card.danger{border-top-color:#ef4444}.dash-card.closed{border-top-color:#16a34a}.dash-card .num{font-size:26px;font-weight:900;display:block;margin:3px 0 5px;color:#07553f}.dash-card.danger .num{color:#ef4444}.dash-card.warn .num{color:#ff7b1a}.dash-card small{color:#65756e;font-size:11px}.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}.chart-card{background:#fff;border:1px solid var(--line);border-radius:5px;padding:14px;min-height:215px}.chart-title{font-weight:900;font-size:13px;margin-bottom:10px;color:#17483a}.donut-wrap{display:flex;align-items:center;justify-content:center;gap:18px;height:135px}.donut{width:112px;height:112px;border-radius:50%;position:relative;flex:0 0 auto}.donut:after{content:'';position:absolute;inset:28px;background:#fff;border-radius:50%}.donut-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;font-size:19px;font-weight:900;color:#064f3a}.legend{display:flex;flex-direction:column;gap:7px;font-size:11px;color:#596b64}.legend-row{display:flex;align-items:center;gap:6px}.legend-dot2{width:9px;height:9px;border-radius:2px;display:inline-block}.dashboard-filter{display:flex;gap:8px;flex-wrap:wrap;padding:12px 0}.dashboard-filter select,.dashboard-filter button{padding:8px 10px;font-size:12px}.latest-table th{font-size:11px;text-transform:uppercase}.latest-table td{font-size:12px;white-space:nowrap}.latest-table .idcell{font-weight:900;color:#07553f}.age-today{color:#16845d;font-weight:800}.age-7{color:#2563eb;font-weight:800}.age-30{color:#d97706;font-weight:800}.age-old{color:#dc2626;font-weight:800}@media(max-width:900px){.dash-cards{grid-template-columns:repeat(2,1fr)}.dash-grid{grid-template-columns:1fr}.dashboard-head{flex-direction:column}}@media(max-width:600px){.dash-cards{grid-template-columns:1fr}.dashboard-switch{width:100%}.latest-table{min-width:850px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px #17352b0b}
+h1{font-size:26px;margin:0 0 22px;border-left:5px solid #38a878;padding-left:14px}h2{font-size:19px;margin-top:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.full{grid-column:1/-1}
+label{display:block;font-size:13px;font-weight:800;color:#1b6250;margin-bottom:7px}input,select,textarea{width:100%;padding:12px;border:1px solid #ccd8d3;border-radius:7px;font-size:15px;background:#fff}textarea{min-height:90px;resize:vertical}
+.gps{background:#eef9f3;border:1px solid #a9ddc3;padding:14px;border-radius:8px}.gpsgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+button{border:0;border-radius:7px;padding:12px 17px;font-weight:800;cursor:pointer}.primary{background:#238b63;color:#fff}.secondary{background:#e8f2ee;color:#14573f}.danger{background:#feeceb;color:var(--danger)}.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:15px}.stat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px}.stat b{font-size:30px;display:block;color:#07553f}.stat span{color:var(--muted)}
+table{width:100%;border-collapse:collapse;background:#fff}th,td{border-bottom:1px solid var(--line);padding:11px;text-align:left;font-size:14px}th{background:#edf5f1;color:#14573f}.pill{display:inline-block;padding:5px 9px;border-radius:20px;background:#e9f6ef;color:#176143;font-size:12px;font-weight:800}
+.notice{padding:12px 15px;background:#fff8df;border:1px solid #f0df99;border-radius:8px;margin-bottom:18px;color:#6b5700}.maptoolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}.maptoolbar button{background:#e8f2ee;color:#14573f}.maptoolbar .primary{background:#238b63;color:#fff}#mapCanvas{height:500px;border-radius:9px;overflow:hidden;border:1px solid var(--line)}
+.culvert-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.culvert-card{border:1px solid var(--line);border-radius:9px;padding:12px;background:#fff;display:flex;justify-content:space-between;gap:10px;align-items:center}.culvert-name{font-weight:800}.culvert-meta{font-size:12px;color:var(--muted);margin-top:4px}.status-badge{display:inline-block;padding:5px 9px;border-radius:16px;font-size:11px;font-weight:800;white-space:nowrap}.status-never{background:#e8f2ee;color:#176143}.status-open{background:#fde8e8;color:#a51d2d}.status-progress{background:#fff0df;color:#9a5200}.status-closed{background:#dff5e8;color:#176143}.filterbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.filterbar button{background:#e8f2ee;color:#14573f}.filterbar button.active-filter{background:#238b63;color:#fff}.summary-note{font-size:13px;color:var(--muted);margin-top:8px}
+.status-map-wrap{position:relative;width:100%;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:#fff;line-height:0}
+.status-map-wrap img{width:100%;height:auto;display:block}
+.status-marker{position:absolute;transform:translate(-50%,-50%);width:28px;height:28px;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 7px #0007;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:900;line-height:1;cursor:pointer;z-index:3;transition:transform .15s,box-shadow .15s}
+.status-marker:hover{transform:translate(-50%,-50%) scale(1.22);box-shadow:0 3px 10px #0009;z-index:10}
+.status-marker.never{background:#14966f}.status-marker.open{background:#d92d4b}.status-marker.progress{background:#e88a1c}.status-marker.closed{background:#28a66a}
+.status-map-label{position:absolute;transform:translate(10px,-50%);background:#fff;color:#17352b;border:1px solid #cbd9d3;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:800;line-height:1.1;box-shadow:0 1px 4px #0003;white-space:nowrap;z-index:4;pointer-events:none}
+.status-map-legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 4px;font-size:12px;color:#53665e}.status-map-legend span{display:inline-flex;align-items:center;gap:5px}.legend-dot{width:12px;height:12px;border-radius:50%;display:inline-block;border:1px solid #fff;box-shadow:0 1px 3px #0004}.legend-dot.never{background:#14966f}.legend-dot.open{background:#d92d4b}.legend-dot.progress{background:#e88a1c}.legend-dot.closed{background:#28a66a}
+.map-status-note{font-size:12px;color:#70817a;margin-top:8px;line-height:1.4}
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#063f2f,#0a6b4d);display:flex;align-items:center;justify-content:center;padding:20px;z-index:99999}.login-card{width:min(420px,100%);background:#fff;border-radius:16px;padding:32px;box-shadow:0 18px 50px #0005}.login-brand{text-align:center;color:#064f3a;font-size:24px;font-weight:900;margin-bottom:8px}.login-sub{text-align:center;color:#70817a;font-size:13px;margin-bottom:24px}.login-card label{margin-top:12px}.login-card input{margin-bottom:4px}.login-error{display:none;background:#feeceb;color:#a51d2d;border:1px solid #f5b8bd;padding:10px;border-radius:7px;margin-top:12px;font-size:13px;font-weight:700}.logout-btn{margin-left:auto;background:#e8f2ee;color:#14573f}.app-hidden{display:none!important}footer{text-align:center;color:#82918b;padding:25px}
+
+.form-section-title{font-size:13px;font-weight:900;color:#17624f;text-transform:uppercase;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:12px;letter-spacing:.1px}
+.form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px}
+.form-card.green{background:#eef9f3;border-color:#a9ddc3}
+.compliance-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.compliance-item{border:1px solid var(--line);border-radius:7px;padding:8px 9px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;font-size:12px}
+.compliance-label{font-weight:700;color:#33564b;line-height:1.25}.toggle-group{display:flex;gap:4px;flex-shrink:0}.toggle{padding:5px 8px;border-radius:4px;border:1px solid #dce5e1;background:#f5f7f6;color:#7b8984;font-size:10px;font-weight:900;cursor:pointer}.toggle.selected.yes{background:#0b9b70;color:#fff;border-color:#0b9b70}.toggle.selected.no{background:#e83d5b;color:#fff;border-color:#e83d5b}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.photo-box{border:1px solid var(--line);padding:10px;border-radius:7px;background:#fff}.photo-box label{margin-bottom:8px}.photo-preview{margin-top:8px;width:100%;height:90px;object-fit:cover;border-radius:6px;display:none;border:1px solid var(--line)}
+.form-submit{width:100%;margin-top:4px;background:#2d7659;color:#fff;border-radius:4px;padding:13px;font-weight:900}
+@media(max-width:800px){.form-grid-3,.form-grid-2,.compliance-grid,.photo-grid{grid-template-columns:1fr}}
+
+@media(max-width:800px){.grid,.gpsgrid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}nav{gap:15px;overflow:auto}.brand{margin-right:5px}.container{padding:0 12px}}
+</style>
+</head>
+<body>
+<div id="loginScreen" class="app-hidden">
+  <div class="login-card">
+    <div class="login-brand">▣ MONITORING GORONG-GORONG</div>
+    <div class="login-sub">Akses khusus Administrator</div>
+    <label>USERNAME</label>
+    <input id="loginUsername" autocomplete="username" placeholder="Username">
+    <label>PASSWORD</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')adminDoLogin()">
+    <button class="primary" style="width:100%;margin-top:16px" onclick="adminDoLogin()">MASUK</button>
+    <div id="loginError" class="login-error">Username atau password salah.</div>
+  </div>
+</div>
+<div id="appShell">
+<nav>
+  <div class="brand">▣ MONITORING <span>GORONG-GORONG</span></div>
+  <a class="active" data-page="home">Home</a>
+  <a data-page="form">Form Inspeksi</a>
+  <a data-page="dashboard">MONITORING</a>
+  <a data-page="map">Map</a>
+  <a data-page="admin">Admin</a>
+  <button id="adminLogoutBtn" class="logout-btn app-hidden" onclick="adminLogout()">Keluar Admin</button>
+</nav>
+
+<div class="container">
+<section id="home" class="page show">
+ <div class="card"><h1>Culvert Monitoring System</h1>
+ <p>Form inspeksi gorong-gorong tambang dengan pencatatan lokasi GPS, kondisi, temuan, foto, dan status tindak lanjut.</p>
+ <div class="actions"><button class="primary" onclick="showPage('form')">+ Buat Inspeksi</button><button class="secondary" onclick="showPage('dashboard')">Lihat Dashboard</button></div>
+ </div>
+ <div class="stats" id="homeStats"></div>
+</section>
+
+<section id="form" class="page">
+ <div class="card" style="padding:14px">
+  <h1>Formulir Laporan Inspeksi</h1>
+  <div class="form-grid-2">
+   <div><label>NAMA INSPEKTOR *</label><select id="inspectorSelect"><option value="">Pilih inspektor...</option></select><input id="inspector" type="hidden"></div>
+   <div><label>NRP</label><input id="nrp" placeholder="Otomatis terisi" readonly></div>
+   <div><label>TANGGAL & WAKTU INSPEKSI *</label><input id="date" type="datetime-local"></div>
+   <div><label>KONDISI CUACA *</label><select id="weather"><option>Cerah</option><option>Berawan</option><option>Hujan</option><option>Hujan Lebat</option></select></div>
+   <div class="full"><label>PARTICIPANTS (PENGAWAS TAMBAHAN / ANGGOTA TIM)</label><input id="participants" placeholder="Nama-nama anggota, pisahkan dengan koma..."></div>
+  </div>
+ </div>
+
+ <div class="form-card">
+  <div class="form-section-title">Objek Inspeksi</div>
+  <div class="form-grid-2">
+   <div><label>JENIS OBJEK *</label><select id="objectType"><option>CULVERT (Gorong-gorong)</option></select></div>
+   <div><label>PILIH ID OBJEK *</label><select id="culvert"></select></div>
+  </div>
+  <div class="form-card green" style="margin:10px 0 0">
+   <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:12px;color:#17624f">KOORDINAT LOKASI (DAPAT DIEDIT MANUAL)</b><button class="primary" type="button" onclick="getGPS()">◉ Get GPS</button></div>
+   <div class="form-grid-2" style="margin-top:10px"><div><label>LATITUDE</label><input id="lat" placeholder="-1.23456"></div><div><label>LONGITUDE</label><input id="lng" placeholder="116.89012"></div></div>
+  </div>
+ </div>
+
+ <div class="form-card">
+  <div class="form-section-title">PARAMETER PENILAIAN KONDISI</div>
+  <div class="form-grid-3">
+   <div><label>Sedimentasi Material (%)</label><select id="sedimentation"><option>&lt;= 25% kapasitas</option><option>26–50% kapasitas</option><option>51–75% kapasitas</option><option>&gt; 75% kapasitas</option></select></div>
+   <div><label>Culvert Rusak (patah/amblas/lepas)</label><select id="culvertDamage"><option>Tidak Ada</option><option>Ada</option></select></div>
+   <div><label>Box Control sebelum inlet</label><select id="boxControl"><option>Tidak Ada</option><option>Ada</option></select></div>
+  </div>
+ </div>
+
+ <div class="form-card">
+  <div class="form-section-title">☑ MATRIKS KEPATUHAN (COMPLIANCE CHECK)</div>
+  <div id="complianceGrid" class="compliance-grid"></div>
+ </div>
+
+ <div class="form-card">
+  <div class="form-section-title">HASIL INSPEKSI & TINDAK LANJUT</div>
+  <div class="form-grid-2">
+   <div><label>KONDISI CULVERT *</label><select id="condition"><option>Baik</option><option>Perlu Monitoring</option><option>Rusak Ringan</option><option>Rusak Berat</option><option>Tersumbat</option></select></div>
+   <div><label>STATUS TINDAK LANJUT *</label><select id="status"><option>Open</option><option>Progress</option><option>Closed</option></select></div>
+   <div class="full"><label>TEMUAN INSPEKSI</label><textarea id="finding" placeholder="Contoh: sedimentasi, retak, erosi, sampah, kerusakan inlet/outlet..."></textarea></div>
+   <div class="full"><label>REKOMENDASI / TINDAKAN</label><textarea id="action" placeholder="Rencana perbaikan atau monitoring berikutnya"></textarea></div>
+  </div>
+ </div>
+
+ <div class="form-card">
+  <div class="form-section-title">FOTO DOKUMENTASI</div>
+  <div class="photo-grid">
+   <div class="photo-box"><label>FOTO INLET</label><input id="photoInlet" type="file" accept="image/*" onchange="previewPhoto(this,'previewInlet')"><img id="previewInlet" class="photo-preview"></div>
+   <div class="photo-box"><label>FOTO OUTLET</label><input id="photoOutlet" type="file" accept="image/*" onchange="previewPhoto(this,'previewOutlet')"><img id="previewOutlet" class="photo-preview"></div>
+   <div class="photo-box"><label>FOTO TAMBAHAN</label><input id="photoAdditional" type="file" accept="image/*" onchange="previewPhoto(this,'previewAdditional')"><img id="previewAdditional" class="photo-preview"></div>
+  </div>
+ </div>
+ <button class="form-submit" onclick="saveInspection()">KIRIM LAPORAN INSPEKSI</button>
+</section>
+
+<section id="dashboard" class="page">
+ <div class="card" style="padding:18px"><div class="dashboard-head"><div><h1 style="margin-bottom:8px">Dashboard Culvert Inspection</h1><div class="dashboard-sub">Menampilkan data inspeksi terakhir per titik Gorong-gorong (Culvert)</div></div><div class="dashboard-switch"><span class="selected">◉ Culvert (Gorong-gorong)</span><span>⌁ Channel (Saluran Air)</span></div></div><div class="dash-cards" id="dashStats"></div></div>
+ <div class="dash-grid"><div class="chart-card"><div class="chart-title">◉ Status Terakhir <span style="font-weight:400;color:#7a8781">(per lokasi)</span></div><div class="donut-wrap"><div class="donut" id="statusDonut"><div class="donut-center" id="statusDonutCenter">0</div></div><div class="legend" id="statusLegend"></div></div></div><div class="chart-card"><div class="chart-title">◷ Waktu Terakhir Inspeksi</div><div class="donut-wrap"><div class="donut" id="ageDonut"><div class="donut-center" id="ageDonutCenter">0</div></div><div class="legend" id="ageLegend"></div></div></div><div class="chart-card"><div class="chart-title">⚑ Kondisi Culvert Terakhir</div><div class="donut-wrap"><div class="donut" id="conditionDonut"><div class="donut-center" id="conditionDonutCenter">0</div></div><div class="legend" id="conditionLegend"></div></div></div></div>
+ <div class="card" style="padding:16px"><div class="dashboard-filter"><strong style="font-size:13px;padding:8px 4px">⚱ Filter:</strong><select id="dashStatusFilter" onchange="renderLatestTable()"><option value="all">-- Semua Status --</option><option value="never">Belum Inspeksi</option><option value="open">Open</option><option value="progress">Progress</option><option value="closed">Closed</option></select><select id="dashConditionFilter" onchange="renderLatestTable()"><option value="all">-- Semua Kondisi --</option></select><button class="secondary" onclick="resetDashboardFilters()">⟳ Reset Filter</button></div><div style="overflow:auto"><table class="latest-table"><thead><tr><th>ID Culvert</th><th>Inspector</th><th>NRP</th><th>Tanggal Inspeksi</th><th>Status</th><th>Kondisi</th><th>Last Check</th><th>Koordinat</th><th>Compliance</th></tr></thead><tbody id="latestTbody"></tbody></table></div></div>
+ <div class="card"><h2>Riwayat Data Inspeksi</h2><div style="overflow:auto"><table><thead><tr><th>Tanggal</th><th>Inspector</th><th>NRP</th><th>ID Culvert</th><th>Kondisi</th><th>Status</th><th>Koordinat</th></tr></thead><tbody id="tbody"></tbody></table></div></div>
+</section>
+
+<section id="map" class="page">
+ <div class="card"><h1>Map Status Culvert — Pit Central W37</h1>
+ <div class="notice">Marker pada peta mengikuti status inspeksi terbaru dari database Supabase. Klik marker untuk melihat ID, status, kondisi, dan waktu inspeksi.</div>
+ <div class="status-map-legend">
+   <span><i class="legend-dot never"></i> Belum Pernah Inspeksi</span>
+   <span><i class="legend-dot open"></i> Open</span>
+   <span><i class="legend-dot progress"></i> Progress</span>
+   <span><i class="legend-dot closed"></i> Closed</span>
+ </div>
+ <div id="statusMap" class="status-map-wrap"></div>
+ <div class="map-status-note">Catatan: marker status dirapikan mengikuti titik lokasi pada peta acuan. Peta acuan memiliki 21 titik visual, sedangkan database berisi 23 ID. Beberapa nama pada peta juga berbeda dari daftar database, sehingga ID yang belum memiliki titik visual tersendiri tidak dipaksakan ditempatkan pada titik yang salah.</div>
+ <div class="maptoolbar" style="margin-top:14px"><button class="primary" onclick="showPage('dashboard')">▣ Lihat Status 23 Lokasi</button><button onclick="renderStatusMap()">↻ Refresh Status Peta</button></div>
+ <div class="card" style="padding:12px;margin:16px 0 0">
+   <h2 style="margin:8px 8px 14px">Peta GPS Hasil Inspeksi</h2>
+   <div class="maptoolbar"><button class="primary" onclick="centerCurrentLocation()">◉ Lokasi Saya</button><button onclick="fitInspectionMarkers()">⌖ Tampilkan Semua Titik</button><button onclick="renderMap()">↻ Refresh Peta GPS</button></div>
+   <div id="mapCanvas"></div>
+   <div id="mapInfo" style="margin-top:12px;color:var(--muted);font-size:13px"></div>
+ </div>
+ </div>
+</section>
+
+<section id="admin" class="page">
+ <div class="card"><h1>Admin</h1><p>Kelola daftar ID culvert. Daftar awal sudah diisi berdasarkan peta Pit Central W37.</p>
+ <div class="grid"><div class="full"><label>Tambah ID Culvert</label><input id="newCulvert" placeholder="Contoh: KALTIM 02"></div></div>
+ <div class="actions"><button class="primary" onclick="addCulvert()">Tambah ID</button></div>
+ <div style="overflow:auto;margin-top:18px"><table><thead><tr><th>No</th><th>ID Culvert</th><th>Aksi</th></tr></thead><tbody id="adminBody"></tbody></table></div>
+ </div>
+</section>
+</div>
+<footer>MONITORING • Mining Monitoring System <span id="dbStatus">• Memuat database...</span></footer>
+</div>
+
+<script>
+// LOGIN ADMIN SEDERHANA. Hanya menu Admin yang memerlukan password.
+const LOGIN_USERNAME = "admin";
+const LOGIN_PASSWORD = "sis123";
+function showAdminLogin(){
+  const screen=document.getElementById("loginScreen");
+  const err=document.getElementById("loginError");
+  screen.classList.remove("app-hidden");
+  err.style.display="none";
+  document.getElementById("loginPassword").value="";
+  document.getElementById("loginUsername").value="";
+  setTimeout(()=>document.getElementById("loginUsername").focus(),50);
+}
+function hideAdminLogin(){document.getElementById("loginScreen").classList.add("app-hidden");}
+function adminDoLogin(){
+ const u=document.getElementById("loginUsername").value.trim();
+ const p=document.getElementById("loginPassword").value;
+ const err=document.getElementById("loginError");
+ if(u===LOGIN_USERNAME && p===LOGIN_PASSWORD){
+   sessionStorage.setItem("admin_login","1");
+   err.style.display="none";
+   hideAdminLogin();
+   document.getElementById("adminLogoutBtn").classList.remove("app-hidden");
+   showPage("admin");
+ } else {
+   err.style.display="block";
+   document.getElementById("loginPassword").value="";
+   document.getElementById("loginPassword").focus();
+ }
+}
+function adminLogout(){
+ sessionStorage.removeItem("admin_login");
+ document.getElementById("adminLogoutBtn").classList.add("app-hidden");
+ showPage("home");
+}
+function isAdmin(){return sessionStorage.getItem("admin_login")==="1";}
+
+const SUPABASE_URL = "https://jwlseefidujqajbjqqkz.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_v0LEMULtsOaSOSFm-hRaDg_1Pkqpkyb";
+const defaultCulverts=["FLRS 01","SMTR 02","SMRA 01","BLI 01","BLI 02","SBG 01","SWL 01","SWL 02","KALTENG 01","KALTENG 02","KALTIM 01","SEULTENG 01","SULTENG 02","SULTIM 01","JWA 01","JWA 02","JWA 03","JWA 04","TERNATE 01","TERNATE 02","TERNATE 03","HANEDA 01","IKN 01"];
+let culverts=[...defaultCulverts];
+let data=[];
+let db=null;
+const dbReady=()=>SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes("PASTE_");
+if(dbReady()) db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+function showPage(id){
+  if(id==="admin" && !isAdmin()){ showAdminLogin(); return; }
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("show"));
+  document.getElementById(id).classList.add("show");
+  document.querySelectorAll("nav a").forEach(x=>x.classList.toggle("active",x.dataset.page===id));
+  document.getElementById("adminLogoutBtn").classList.toggle("app-hidden",!isAdmin());
+  if(id==="dashboard")renderDashboard();
+  if(id==="admin")renderAdmin();
+  if(id==="map"){renderStatusMap();renderMap();}
+}
+document.querySelectorAll("nav a").forEach(a=>a.onclick=()=>showPage(a.dataset.page));
+if(isAdmin()) document.getElementById("adminLogoutBtn").classList.remove("app-hidden");
+function fillCulverts(){const s=document.getElementById("culvert");s.innerHTML=culverts.map(x=>`<option>${x}</option>`).join("")}
+function setDate(){let d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());document.getElementById("date").value=d.toISOString().slice(0,16)}
+function getGPS(){if(!navigator.geolocation)return alert("Browser tidak mendukung GPS.");navigator.geolocation.getCurrentPosition(p=>{document.getElementById("lat").value=p.coords.latitude.toFixed(6);document.getElementById("lng").value=p.coords.longitude.toFixed(6)},e=>alert("GPS gagal: "+e.message),{enableHighAccuracy:true,timeout:10000})}
+async function loadData(){
+ if(!dbReady()){data=JSON.parse(localStorage.getItem("inspections")||"[]");culverts=JSON.parse(localStorage.getItem("culverts")||"null")||defaultCulverts;populateInspectors();setDbStatus("Mode lokal — isi konfigurasi Supabase untuk database bersama");return;}
+ setDbStatus("Menghubungkan database...");
+ const [ci,cu]=await Promise.all([db.from("inspections").select("*").order("inspection_at",{ascending:false}),db.from("culverts").select("id").order("id")]);
+ if(ci.error||cu.error){console.error(ci.error||cu.error);setDbStatus("Database belum siap — cek SQL/RLS");data=[];culverts=[...defaultCulverts];return;}
+ data=ci.data||[];culverts=(cu.data||[]).map(x=>x.id);if(!culverts.length)culverts=[...defaultCulverts];populateInspectors();setDbStatus("● Database online");
+}
+function setDbStatus(t){document.getElementById("dbStatus").textContent="• "+t}
+
+const complianceItems=[
+ '1. Pondasi di culvert','2. Penahan erosi di outlet','3. Informasi ID Culvert dan Nama Jalan',
+ '4. Informasi jumlah Line','5. Informasi diameter culvert','6. Informasi Tanggal/jadwal maintenance','7. Informasi PIC/penanggung jawab culvert',
+ '8. QR Code link info detail culvert','9. Tersedia area parkir sarana inspeksi','10. Area untuk melihat obyek inspeksi dengan jelas dan aman','11. Kemudahan akses (tangga, foot step, dsb)','12. Rambu penanda posisi culvert'
+];
+function renderCompliance(){
+ const el=document.getElementById('complianceGrid'); if(!el)return;
+ el.innerHTML=complianceItems.map((name,i)=>`<div class="compliance-item"><span class="compliance-label">${name}</span><span class="toggle-group"><button type="button" class="toggle selected yes" data-index="${i}" data-value="ADA" onclick="setCompliance(${i},'ADA',this)">ADA</button><button type="button" class="toggle" data-index="${i}" data-value="TIDAK" onclick="setCompliance(${i},'TIDAK',this)">TIDAK</button></span></div>`).join('');
+}
+function setCompliance(i,val,btn){document.querySelectorAll(`.toggle[data-index="${i}"]`).forEach(b=>b.classList.remove('selected','yes','no'));btn.classList.add('selected',val==='ADA'?'yes':'no');}
+function complianceText(){return complianceItems.map((name,i)=>{const b=document.querySelector(`.toggle[data-index="${i}"].selected`);return `${name}: ${b?b.dataset.value:'ADA'}`}).join('; ')}
+function previewPhoto(input,id){const img=document.getElementById(id);const f=input.files&&input.files[0];if(!f){img.style.display='none';return}img.src=URL.createObjectURL(f);img.style.display='block'}
+const inspectorNRP = {
+ 'CHANDRA ANDREAN':'0107527','HENDY FARAZI':'0118505','YOHANIS LUNGAN':'0397007','YAMRONI':'0605475','RENDI JULIANTO ELSA':'0117242','AZMI DERMAWAN':'0117096','PIKAR CHANDRA S P':'80008608','SARYANTO':'118613','DWI SAPUTRA':'80012412','RAFI ARI UTOMO':'80007749','EDY SURYANTO':'01114090','RIBUT SUPRIANTO':'01114093','ARYA ADE PUTRA':'80012843','SUGENG':'01114091','ANTON SUMIRAT JATI':'01114081','AKHMAD GAJALI RAHMAN':'1114051','EDY RIYANTO':'1114080','YONATAN PARDOMUAN SIHOMBING':'0117170','FERDIANSYAH':'0117083','MUHAMMAD RAFSANJANI ABDUL BAHRI':'80002815','RULLY AKBAR':'117557','JON WAIN ULISA':'01116008','MUHAMMAD TAUFIK AKBAR':'0117556','M RAIHAN KUSNADI':'80007708','NANANG ISWAN HADI':'80003155','DEDDY SUPRIADI':'80012842','AKHMAD JAZULI':'01116010','ISTIONO':'01114059','SARDIANSYAH':'01113039','SUIS EDI HARYANTO':'80012676','WAWAN KHAIRUDIN':'01118012','JEMMY WARDHANI':'01116015','SIMON LAYUK':'01114058','AKHMAD RIZANI':'1114003','MARTEN PALEMBANGAN':'01114056','M. YARNI':'1114013','HIZKIA RIZKY F. PARHUSIP':'80012359','SURYADI':'1118131','SUGIANTO':'206815','M. SULAIMAN':'1118211','FINDO HAWANI':'01114069','WAHYUDI JOKO PRASETYO':'01116016','AFDOL YUSRA':'80007694','RIFQI FAKHIRUL':'0117253','RAHMAD KIPLI':'1114030','PURWANTO':'1114029','DENNI ADRIAWAN':'1116017','I MADE YULIAWAN':'80004916','MUHAMAD NIZAR ZULFI':'80006346','RIYA ANSARI':'01115032','SAPRUDIN':'1114050','HARNADI':'01114015','RIYANTO':'01113005','TAUFIK ABJAR':'01113037','JOHANSYAH':'01113018','M. TAHIR':'01114008'
+};
+function syncInspectorNRP(){
+ const s=document.getElementById('inspectorSelect');
+ const hidden=document.getElementById('inspector');
+ const n=document.getElementById('nrp');
+ if(!s||!n)return;
+ const name=s.value||'';
+ if(hidden)hidden.value=name;
+ n.value=inspectorNRP[name]||'';
+}
+
+function populateInspectors(){
+ const s=document.getElementById('inspectorSelect'); if(!s)return;
+ const names=[
+ 'CHANDRA ANDREAN','HENDY FARAZI','YOHANIS LUNGAN','YAMRONI','RENDI JULIANTO ELSA',
+ 'AZMI DERMAWAN','PIKAR CHANDRA S P','SARYANTO','DWI SAPUTRA','RAFI ARI UTOMO',
+ 'EDY SURYANTO','RIBUT SUPRIANTO','ARYA ADE PUTRA','SUGENG','ANTON SUMIRAT JATI',
+ 'AKHMAD GAJALI RAHMAN','EDY RIYANTO','YONATAN PARDOMUAN SIHOMBING','FERDIANSYAH',
+ 'MUHAMMAD RAFSANJANI ABDUL BAHRI','RULLY AKBAR','JON WAIN ULISA','MUHAMMAD TAUFIK AKBAR',
+ 'M RAIHAN KUSNADI','NANANG ISWAN HADI','DEDDY SUPRIADI','AKHMAD JAZULI','ISTIONO',
+ 'SARDIANSYAH','SUIS EDI HARYANTO','WAWAN KHAIRUDIN','JEMMY WARDHANI','SIMON LAYUK',
+ 'AKHMAD RIZANI','MARTEN PALEMBANGAN','M. YARNI','HIZKIA RIZKY F. PARHUSIP','SURYADI',
+ 'SUGIANTO','M. SULAIMAN','FINDO HAWANI','WAHYUDI JOKO PRASETYO','AFDOL YUSRA',
+ 'RIFQI FAKHIRUL','RAHMAD KIPLI','PURWANTO','DENNI ADRIAWAN','I MADE YULIAWAN',
+ 'MUHAMAD NIZAR ZULFI','RIYA ANSARI','SAPRUDIN','HARNADI','RIYANTO','TAUFIK ABJAR',
+ 'JOHANSYAH','M. TAHIR'
+ ];
+ s.innerHTML='<option value="">Pilih inspektor...</option>'+names.map(n=>`<option value="${n.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">${n}</option>`).join('');
+ s.onchange=syncInspectorNRP; syncInspectorNRP();
+}
+async function saveInspection(){
+ let inspectorName=document.getElementById("inspector").value.trim()||document.getElementById("inspectorSelect").value.trim(); let x={inspector:inspectorName,nrp:nrp.value.trim(),inspection_at:date.value,weather:weather.value,participants:participants.value.trim(),culvert_id:culvert.value,latitude:lat.value?Number(lat.value):null,longitude:lng.value?Number(lng.value):null,condition:condition.value,status:status.value,finding:finding.value.trim(),action:action.value.trim()}; x.finding=(x.finding?x.finding+"\n\n":"")+"Compliance: "+complianceText()+"\nParameter: Sedimentasi="+sedimentation.value+"; Culvert Rusak="+culvertDamage.value+"; Box Control="+boxControl.value;
+ if(!x.inspector||!x.culvert_id||!x.inspection_at)return alert("Lengkapi kolom wajib.");
+ if(dbReady()){
+   const {error}=await db.from("inspections").insert(x); if(error)return alert("Gagal menyimpan: "+error.message);
+ }else{ x.id=Date.now();data.push(x);localStorage.setItem("inspections",JSON.stringify(data)); }
+ await loadData();alert("Data inspeksi tersimpan.");resetForm();showPage("dashboard");
+}
+function resetForm(){document.querySelectorAll("#form input,#form textarea").forEach(x=>{if(x.type!=="datetime-local"&&x.type!=="file"&&x.type!=="hidden")x.value=""});document.getElementById("inspectorSelect").value="";document.getElementById("inspector").value="";setDate();document.getElementById("weather").value="Cerah";document.getElementById("condition").value="Baik";document.getElementById("status").value="Open";["photoInlet","photoOutlet","photoAdditional"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=""});["previewInlet","previewOutlet","previewAdditional"].forEach(id=>{const e=document.getElementById(id);if(e){e.style.display="none";e.removeAttribute("src")}});fillCulverts();renderCompliance()}
+let culvertFilter='all';
+function inspectionTime(x){
+  // Gunakan waktu inspeksi sebagai acuan utama. Jika kosong/tidak valid,
+  // gunakan created_at/id sebagai pembanding agar laporan terbaru tidak salah terbaca.
+  const raw=x?.inspection_at||x?.inspectionAt||x?.date;
+  const t=raw?new Date(raw).getTime():NaN;
+  if(Number.isFinite(t)) return t;
+  const c=x?.created_at||x?.createdAt;
+  const ct=c?new Date(c).getTime():NaN;
+  if(Number.isFinite(ct)) return ct;
+  const id=Number(x?.id);
+  return Number.isFinite(id)?id:0;
+}
+function normalizeCulvertId(v){ return String(v||'').trim().toUpperCase(); }
+function normalizeStatus(v){
+  const s=String(v||'').trim().toLowerCase().replace(/[_-]+/g,' ');
+  if(s==='closed'||s==='close') return 'closed';
+  if(s==='progress'||s==='in progress') return 'progress';
+  if(s==='open'||s==='opened') return 'open';
+  return 'open';
+}
+function latestInspectionsByCulvert(){
+ const m={};
+ for(const x of data){
+   const id=normalizeCulvertId(x.culvert_id||x.culvert); if(!id) continue;
+   const current=m[id];
+   // Jika waktunya sama, data yang muncul belakangan dianggap laporan terbaru.
+   if(!current || inspectionTime(x)>=inspectionTime(current)) m[id]=x;
+ }
+ return m;
+}
+function statusInfo(x){
+ if(!x) return {key:'never',label:'Belum Pernah Inspeksi'};
+ const st=normalizeStatus(x.status);
+ if(st==='closed') return {key:'closed',label:'Closed'};
+ if(st==='progress') return {key:'progress',label:'Progress'};
+ return {key:'open',label:'Open'};
+}
+function renderCulvertSummary(){
+ const latest=latestInspectionsByCulvert();
+ const rows=culverts.map(id=>{const last=latest[normalizeCulvertId(id)];return {id,last,info:statusInfo(last)};});
+ const filtered=culvertFilter==='all'?rows:rows.filter(r=>r.info.key===culvertFilter);
+ document.getElementById('culvertSummary').innerHTML=filtered.map(r=>{
+   const d=r.last?.inspection_at?new Date(r.last.inspection_at).toLocaleString('id-ID'):'Belum ada inspeksi';
+   const cond=r.last?.condition?` • ${r.last.condition}`:'';
+   return `<div class="culvert-card"><div><div class="culvert-name">${r.id}</div><div class="culvert-meta">${d}${cond}</div></div><span class="status-badge status-${r.info.key}">${r.info.label}</span></div>`;
+ }).join('') || '<div class="summary-note">Tidak ada lokasi pada filter ini.</div>';
+}
+function setCulvertFilter(filter,btn){
+ culvertFilter=filter; document.querySelectorAll('.filterbar button').forEach(b=>b.classList.remove('active-filter')); if(btn)btn.classList.add('active-filter'); renderCulvertSummary();
+}
+function escapeHtml(v){return String(v??'-').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));}
+function getLatestRows(){const latest=latestInspectionsByCulvert();return culverts.map(id=>({id,last:latest[normalizeCulvertId(id)]||null,info:statusInfo(latest[normalizeCulvertId(id)]||null)}));}
+function getAgeBucket(x){if(!x)return 'never';const t=inspectionTime(x);if(!Number.isFinite(t))return 'old';const days=(Date.now()-t)/86400000;if(days<=1)return 'today';if(days<=7)return '7';if(days<=30)return '30';return 'old';}
+function getAgeLabel(x){const b=getAgeBucket(x);return b==='never'?'Belum Inspeksi':b==='today'?'Hari Ini':b==='7'?'< 7 Hari':b==='30'?'> 7 Hari':'> 30 Hari';}
+function getCompliancePercent(x){const text=String(x?.finding||'');const m=text.match(/Compliance:\s*([\s\S]*?)(?:\n\nParameter:|$)/i);if(!m)return '-';const vals=m[1].match(/:\s*(ADA|TIDAK)/gi)||[];if(!vals.length)return '-';const yes=vals.filter(v=>/ADA/i.test(v)&&!/TIDAK/i.test(v)).length;return Math.round(yes/vals.length*100)+'%';}
+function fillConditionFilter(rows){const s=document.getElementById('dashConditionFilter');if(!s)return;const vals=[...new Set(rows.map(r=>r.last?.condition).filter(Boolean))];const cur=s.value;s.innerHTML='<option value="all">-- Semua Kondisi --</option>'+vals.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');if(vals.includes(cur))s.value=cur;}
+function renderLatestTable(){const rows=getLatestRows();fillConditionFilter(rows);const sf=document.getElementById('dashStatusFilter')?.value||'all',cf=document.getElementById('dashConditionFilter')?.value||'all';const filtered=rows.filter(r=>(sf==='all'||r.info.key===sf)&&(cf==='all'||(r.last?.condition||'')===cf));const body=document.getElementById('latestTbody');if(!body)return;body.innerHTML=filtered.map(r=>{const x=r.last,age=getAgeBucket(x);const coord=x?`${escapeHtml(x.latitude??x.lat??'-')}, ${escapeHtml(x.longitude??x.lng??'-')}`:'-';const dt=x?.inspection_at?new Date(x.inspection_at).toLocaleDateString('id-ID'):'-';return `<tr><td class="idcell">↻ ${escapeHtml(r.id)}</td><td>${escapeHtml(x?.inspector||'-')}</td><td>${escapeHtml(x?.nrp||'-')}</td><td>${dt}</td><td><span class="pill status-${r.info.key}">${r.info.label}</span></td><td>${escapeHtml(x?.condition||'-')}</td><td class="${age==='today'?'age-today':age==='7'?'age-7':age==='30'?'age-30':age==='old'?'age-old':''}">${getAgeLabel(x)}</td><td>${coord}</td><td>${getCompliancePercent(x)}</td></tr>`;}).join('')||'<tr><td colspan="9">Tidak ada lokasi pada filter ini.</td></tr>';}
+function setDonut(id,items,total){const el=document.getElementById(id);if(!el)return;let cur=0,parts=[];items.forEach(it=>{const deg=total?360*(it.value||0)/total:0;parts.push(`${it.color} ${cur}deg ${cur+deg}deg`);cur+=deg});el.style.background=parts.length?`conic-gradient(${parts.join(',')})`:'conic-gradient(#dce5e1 0 360deg)';}
+function renderDashboard(){const rows=getLatestRows();const total=culverts.length;const inspected=rows.filter(r=>r.last).length;const never=rows.filter(r=>!r.last).length;const counts={open:0,progress:0,closed:0};rows.forEach(r=>{if(counts[r.info.key]!=null)counts[r.info.key]++});dashStats.innerHTML=`<div class="dash-card"><small>◉ TOTAL CULVERT</small><span class="num">${total}</span><small>Directory 23 lokasi</small></div><div class="dash-card danger"><small>! BELUM INSPEKSI</small><span class="num">${never}</span><small>Belum ada laporan</small></div><div class="dash-card warn"><small>◷ OPEN</small><span class="num">${counts.open}</span><small>Perlu tindak lanjut</small></div><div class="dash-card"><small>⌁ PROGRESS</small><span class="num">${counts.progress}</span><small>Sedang ditangani</small></div><div class="dash-card closed"><small>✓ CLOSED</small><span class="num">${counts.closed}</span><small>Selesai</small></div>`;const totalStatus=Math.max(1,total);setDonut('statusDonut',[{value:counts.closed,color:'#22c55e'},{value:counts.progress,color:'#f59e0b'},{value:counts.open,color:'#ef4444'},{value:never,color:'#9ca3af'}],totalStatus);document.getElementById('statusDonutCenter').textContent=total;document.getElementById('statusLegend').innerHTML=[['Closed',counts.closed,'#22c55e'],['Progress',counts.progress,'#f59e0b'],['Open',counts.open,'#ef4444'],['Belum Inspeksi',never,'#9ca3af']].map(x=>`<div class="legend-row"><i class="legend-dot2" style="background:${x[2]}"></i>${x[0]} ${x[1]}</div>`).join('');const age={today:0,'7':0,'30':0,old:0,never:never};rows.forEach(r=>age[getAgeBucket(r.last)]++);setDonut('ageDonut',[{value:age.today,color:'#10b981'},{value:age['7'],color:'#3b82f6'},{value:age['30'],color:'#f59e0b'},{value:age.old,color:'#ef4444'},{value:age.never,color:'#9ca3af'}],total);document.getElementById('ageDonutCenter').textContent=inspected;document.getElementById('ageLegend').innerHTML=[['Hari Ini',age.today,'#10b981'],['< 7 Hari',age['7'],'#3b82f6'],['> 7 Hari',age['30'],'#f59e0b'],['> 30 Hari',age.old,'#ef4444'],['Belum Inspeksi',age.never,'#9ca3af']].map(x=>`<div class="legend-row"><i class="legend-dot2" style="background:${x[2]}"></i>${x[0]} ${x[1]}</div>`).join('');const cond={};rows.forEach(r=>{const k=r.last?.condition||'Belum Inspeksi';cond[k]=(cond[k]||0)+1});const ce=Object.entries(cond),palette=['#22c55e','#f59e0b','#3b82f6','#ef4444','#9ca3af','#8b5cf6'];setDonut('conditionDonut',ce.map((x,i)=>({value:x[1],color:palette[i%palette.length]})),total);document.getElementById('conditionDonutCenter').textContent=inspected;document.getElementById('conditionLegend').innerHTML=ce.map((x,i)=>`<div class="legend-row"><i class="legend-dot2" style="background:${palette[i%palette.length]}"></i>${escapeHtml(x[0])} ${x[1]}</div>`).join('');const history=[...data].sort((a,b)=>inspectionTime(b)-inspectionTime(a));tbody.innerHTML=history.map(x=>`<tr><td>${x.inspection_at?new Date(x.inspection_at).toLocaleString('id-ID'):'-'}</td><td>${escapeHtml(x.inspector||'-')}</td><td>${escapeHtml(x.nrp||'-')}</td><td>${escapeHtml(x.culvert_id||x.culvert||'-')}</td><td>${escapeHtml(x.condition||'-')}</td><td><span class="pill status-${normalizeStatus(x.status)}">${escapeHtml(statusInfo(x).label)}</span></td><td>${escapeHtml(x.latitude??x.lat??'-')}, ${escapeHtml(x.longitude??x.lng??'-')}</td></tr>`).join('')||'<tr><td colspan="7">Belum ada data inspeksi.</td></tr>';renderLatestTable();renderCulvertSummary();homeStats.innerHTML=[[`Total Culvert`,culverts.length],[`Sudah Inspeksi`,inspected],[`Belum Inspeksi`,never],[`Total Laporan`,data.length]].map(x=>`<div class="stat"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');}
+function resetDashboardFilters(){document.getElementById('dashStatusFilter').value='all';document.getElementById('dashConditionFilter').value='all';renderLatestTable();}
+function renderAdmin(){adminBody.innerHTML=culverts.map((x,i)=>`<tr><td>${i+1}</td><td>${x}</td><td><button class="danger" onclick="delCulvert(${i})">Hapus</button></td></tr>`).join("")}
+async function addCulvert(){let x=newCulvert.value.trim();if(!x||culverts.includes(x))return;if(dbReady()){const {error}=await db.from("culverts").insert({id:x});if(error)return alert("Gagal menambah: "+error.message)}else{culverts.push(x);localStorage.setItem("culverts",JSON.stringify(culverts))}await loadData();newCulvert.value="";renderAdmin();fillCulverts()}
+async function delCulvert(i){let x=culverts[i];if(!confirm("Hapus ID ini?"))return;if(dbReady()){const {error}=await db.from("culverts").delete().eq("id",x);if(error)return alert("Gagal menghapus: "+error.message)}else{culverts.splice(i,1);localStorage.setItem("culverts",JSON.stringify(culverts))}await loadData();renderAdmin();fillCulverts()}
+const statusMapPositions={
+ /* Titik marker mengikuti pusat lingkaran lokasi pada peta acuan. */
+ "FLRS 01":[29.53,11.39], "SMTR 02":[42.59,12.54], "SMRA 01":[48.21,20.05],
+ "BLI 01":[41.52,30.38], "BLI 02":[45.18,31.35], "SBG 01":[57.72,20.87],
+ "SWL 01":[48.42,38.56], "SWL 02":[44.92,46.21],
+ "KALTENG 01":[61.61,37.32], "KALTENG 02":[55.64,38.57], "KALTIM 01":[68.58,32.91],
+ "SEULTENG 01":[55.66,49.21], "SULTIM 01":[60.41,57.55],
+ "JWA 01":[68.75,15.12], "JWA 03":[74.27,13.45], "JWA 02":[80.07,11.21], "JWA 04":[81.64,25.05],
+ "TERNATE 02":[37.97,55.99], "TERNATE 03":[24.89,56.74],
+ "HANEDA 01":[44.01,65.37], "IKN 01":[56.65,66.08]
+};
+
+function renderStatusMap(){
+ const el=document.getElementById('statusMap'); if(!el)return;
+ const latest=latestInspectionsByCulvert();
+ const img='<img src="peta-pit-central-w37.png" alt="Peta status lokasi gorong-gorong Pit Central W37">';
+ const markers=culverts.map((id,i)=>{
+   const pos=statusMapPositions[id];
+   if(!pos)return '';
+   const last=latest[normalizeCulvertId(id)];
+   const info=statusInfo(last);
+   const detail=last?`${info.label} • ${last.condition||'-'} • ${new Date(last.inspection_at||last.date).toLocaleString('id-ID')}`:'Belum ada inspeksi';
+   return `<button class="status-marker ${info.key}" style="left:${pos[1]}%;top:${pos[0]}%" aria-label="${id}" title="${id} — ${detail.replace(/"/g,'&quot;')}" onclick="openStatusMarker('${id.replace(/'/g,"\'")}')">${i+1}</button>`;
+ }).join('');
+ el.innerHTML=img+markers;
+}
+function openStatusMarker(id){
+ const latest=latestInspectionsByCulvert(); const x=latest[normalizeCulvertId(id)]; const info=statusInfo(x);
+ const detail=x?`Status: ${info.label}\nKondisi: ${x.condition||'-'}\nInspektor: ${x.inspector||'-'}\nWaktu: ${new Date(x.inspection_at||x.date).toLocaleString('id-ID')}`:'Belum pernah ada inspeksi untuk lokasi ini.';
+ alert(`${id}\n\n${detail}`);
+}
+
+let leafletMap=null;
+let inspectionLayer=null;
+let currentLocationLayer=null;
+function renderMap(){
+ const el=document.getElementById("mapCanvas");
+ if(!el)return;
+ if(!leafletMap){
+   leafletMap=L.map("mapCanvas").setView([-0.5,117],5);
+   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(leafletMap);
+   inspectionLayer=L.layerGroup().addTo(leafletMap);
+ }
+ inspectionLayer.clearLayers();
+ const points=[];
+ data.forEach(x=>{
+   const la=Number(x.latitude ?? x.lat), lo=Number(x.longitude ?? x.lng);
+   if(Number.isFinite(la)&&Number.isFinite(lo)){
+     const marker=L.marker([la,lo]).addTo(inspectionLayer);
+     marker.bindPopup(`<b>${x.culvert_id||x.culvert||"Culvert"}</b><br>Inspector: ${x.inspector||"-"}<br>Kondisi: ${x.condition||"-"}<br>Status: ${x.status||"-"}<br>Waktu: ${x.inspection_at?new Date(x.inspection_at).toLocaleString("id-ID"):"-"}`);
+     points.push([la,lo]);
+   }
+ });
+ document.getElementById("mapInfo").textContent=points.length?`${points.length} titik inspeksi memiliki koordinat GPS.`:"Belum ada titik inspeksi dengan koordinat GPS. Isi Latitude/Longitude atau gunakan Get GPS saat inspeksi.";
+ if(points.length)leafletMap.fitBounds(points,{padding:[30,30],maxZoom:17});
+ setTimeout(()=>leafletMap.invalidateSize(),100);
+}
+function fitInspectionMarkers(){
+ if(!leafletMap)return renderMap();
+ const points=[];
+ data.forEach(x=>{const la=Number(x.latitude ?? x.lat),lo=Number(x.longitude ?? x.lng);if(Number.isFinite(la)&&Number.isFinite(lo))points.push([la,lo]);});
+ if(points.length)leafletMap.fitBounds(points,{padding:[30,30],maxZoom:17});else alert("Belum ada data inspeksi yang memiliki koordinat GPS.");
+}
+function centerCurrentLocation(){
+ if(!navigator.geolocation)return alert("Browser tidak mendukung GPS.");
+ navigator.geolocation.getCurrentPosition(p=>{
+   const pos=[p.coords.latitude,p.coords.longitude];
+   if(!leafletMap){renderMap();}
+   if(currentLocationLayer)currentLocationLayer.remove();
+   currentLocationLayer=L.marker(pos).addTo(leafletMap).bindPopup("Lokasi perangkat Anda").openPopup();
+   leafletMap.setView(pos,17);
+ },e=>alert("GPS gagal: "+e.message),{enableHighAccuracy:true,timeout:10000});
+}
+async function init(){fillCulverts();setDate();renderCompliance();await loadData();fillCulverts();populateInspectors();renderDashboard();renderAdmin();renderStatusMap()}
+init();
+</script>
+</body></html>
